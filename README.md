@@ -1,4 +1,4 @@
-# PAKDD25-CRL-measure
+# CRL-measure
 This repository contains the implementation of the CRL measure proposed to evaluate record linkage.
 
 
