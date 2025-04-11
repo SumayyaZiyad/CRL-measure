@@ -3,6 +3,7 @@
 #
 # Run from command line to execute the example.
 #
+# Peter Christen, November 2024
 # -----------------------------------------------------------------------------
 
 VERBOSE = False # True  # For more output
@@ -47,7 +48,6 @@ def crl_measure(eps, S_list, m_class_label='m', n_class_label='n'):
      Returns the calculated CRL-measure value and the lower and upper
      classification thresholds between which the measure was calculated.
   """
-
   # Get the number of actual matches and actual non-matches in S_list
   #
   num_m = 0
@@ -78,6 +78,7 @@ def crl_measure(eps, S_list, m_class_label='m', n_class_label='n'):
   # Sort the unique scores in reverse order (highest first)
   #
   unique_score_list = sorted(S_dict.keys(), reverse=True)
+  num_unique_scores = len(unique_score_list)
 
   use_unique_s_ij_set = set()  # Unique scores used to calculate CRL-measure
 
@@ -92,9 +93,12 @@ def crl_measure(eps, S_list, m_class_label='m', n_class_label='n'):
   F_list = []
 
   if (VERBOSE == True): print('-----------------------------')
+  if (VERBOSE == True): print('  eps = %.3f' % (eps))
   if (VERBOSE == True): print('  Output: (k s_ij (tp, fn, fp) fnr fdr)')
 
-  while (fnr > eps):  # First loop until fnr <= epsilon
+  # First loop until fnr <= epsilon
+  #
+  while (fnr > eps) and (k < num_unique_scores):
 
     s_ij = unique_score_list[k]  # Next unique classification score
     score_m, score_n = S_dict[s_ij]  # Get counts of class memberships at s_ij
@@ -116,7 +120,7 @@ def crl_measure(eps, S_list, m_class_label='m', n_class_label='n'):
 
   fdr = false_discovery_rate(tp, fn, fp)
 
-  while (fdr <= eps):
+  while (fdr <= eps) and (k < num_unique_scores):
 
     # Calculate the F-star measure for current confusion matrix (for which
     # both fnr <= epsilon and fdr <= epsilon)
@@ -140,7 +144,7 @@ def crl_measure(eps, S_list, m_class_label='m', n_class_label='n'):
     if (VERBOSE == True): print('    Loop 2:', k, s_ij, (tp, fn, fp), fdr, fnr)
 
   perc_scores_used = 100.0*k / len(unique_score_list)
-
+    
   if (VERBOSE == True): print('  t_lower:', t_lower)
   if (VERBOSE == True): print('    %d unique scores in S_list, with %d used' \
                               % (len(unique_score_list),
@@ -149,11 +153,14 @@ def crl_measure(eps, S_list, m_class_label='m', n_class_label='n'):
                               % (k, len(unique_score_list)) + \
                               ' (%.1f%%)' % (perc_scores_used))
   if (VERBOSE == True): print('-----------------------------')
-
+  
   if (len(F_list) == 0):
     return 0.0, t_lower, t_upper
   else:
+    # crl = sum(F_list) / len(F_list)  # Old version
     crl = (sum(F_list) / len(F_list)) * (t_upper - t_lower)
+#    print('*** version 2 with threshold range: %.3f' % \
+#          (sum(F_list) / len(F_list) * (t_upper - t_lower)))
     return crl, t_lower, t_upper
 
 # =============================================================================
@@ -231,5 +238,13 @@ if (__name__ == '__main__'):
   print('  - CRL-0.05 measure: %.3f (t_l=%.3f, t_u=%.3f)' % \
         crl_measure(0.05, S_list))
   print()
+
+  S_list = [(0.4999, 'n'), (0.4999, 'n'), (0.5, 'm'), (0.5, 'm')]
+  a,b,c =crl_measure(0.2, S_list)
+  print(0.2, a, b, c, a/(c-b))
+  a,b,c =crl_measure(0.1, S_list)
+  print(-.1, a, b, c, a/(c-b))
+  a,b,c =crl_measure(0.01, S_list)
+  print(0.01, a, b, c, a/(c-b))
 
 # End.

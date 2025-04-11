@@ -1,4 +1,4 @@
-# Evaluate the crl-measure using several generated sets of record linkage
+# Evaluate the clr-measure using several generated sets of record linkage
 # results
 #
 # Run in two ways, either as:
@@ -11,8 +11,10 @@
 # - num_m  is the number of matches to be generated in all test data sets
 # - num_n  is the number of non-matches to be generated in all test data sets
 #  -res_file_name is a CSV or CSV.GZ file where in each row there is a
-#   classification score value and a class membership value (1 for a match and
-#   0 for a non-match).
+#   record identifier pair, a classification score value, and a class
+#   membership value (1 for a match and 0 for a non-match).
+
+# Peter Christen, November 2024 to April 2025
 # -----------------------------------------------------------------------------
 
 import gzip
@@ -22,6 +24,14 @@ import sys
 import numpy
 
 import crl_measure
+
+eps_list = []
+for eps in range(1,100):
+  eps_list.append(float(eps) / 100)
+print(eps_list)
+
+#eps_list = [1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, \
+#            0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.0]
 
 # -----------------------------------------------------------------------------
 # The functions that will generate the data sets, each will return a list the
@@ -68,7 +78,7 @@ def excellent_classification(num_m, num_n):
   #
   for i in range(num_m09):
     s = float(random.randint(900000, 1000000)) / 1000000  # 0.9 to 1 inclusive
-    assert (s >= 0.9) and (s <= 1.0), s
+    assert (s >= 0.9) and (s <= 1.0), s 
     S_list.append((s, 'm'))
   for i in range(num_m07):
     s = float(random.randint(700000, 899999)) / 1000000  # 0.7 to 0.9
@@ -77,11 +87,11 @@ def excellent_classification(num_m, num_n):
 
   for i in range(num_n07):
     s = float(random.randint(700000, 899999)) / 1000000  # 0.7 to 0.9
-    assert (s >= 0.7) and (s < 0.9), s
+    assert (s >= 0.7) and (s < 0.9), s 
     S_list.append((s, 'n'))
   for i in range(num_n00):
     s = float(random.randint(0, 699999)) / 1000000  # 0.0 to 0.7
-    assert (s < 0.7), s
+    assert (s < 0.7), s 
     S_list.append((s, 'n'))
 
   # Check the required numbers of matches and non-matches have been generated
@@ -92,7 +102,7 @@ def excellent_classification(num_m, num_n):
     if c == 'm': check_m +=1
     else: check_n += 1
   assert num_m == check_m and num_n == check_n
-
+  
   return S_list
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -115,7 +125,7 @@ def good_classification(num_m, num_n):
   num_n08 = int(0.05 * num_n)         # Number of scores >= 0.8 and < 0.9
   num_n07 = int(0.1 * num_n)          # Number of scores >= 0.7 and < 0.8
   num_n00 = num_n - num_n08 - num_n07 # Number of scores < 0.7
-
+  
   S_list = []
 
   # Loop over the different categories until the required numbers of matches
@@ -123,7 +133,7 @@ def good_classification(num_m, num_n):
   #
   for i in range(num_m09):
     s = float(random.randint(900000, 1000000)) / 1000000  # 0.9 to 1 inclusive
-    assert (s >= 0.9) and (s <= 1.0), s
+    assert (s >= 0.9) and (s <= 1.0), s 
     S_list.append((s, 'm'))
   for i in range(num_m08):
     s = float(random.randint(800000, 899999)) / 1000000  # 0.8 to 0.9
@@ -136,15 +146,15 @@ def good_classification(num_m, num_n):
 
   for i in range(num_n08):
     s = float(random.randint(800000, 899999)) / 1000000  # 0.8 to 0.9
-    assert (s >= 0.8) and (s < 0.9), s
+    assert (s >= 0.8) and (s < 0.9), s 
     S_list.append((s, 'n'))
   for i in range(num_n07):
     s = float(random.randint(700000, 799999)) / 1000000  # 0.7 to 0.8
-    assert (s >= 0.7) and (s < 0.8), s
+    assert (s >= 0.7) and (s < 0.8), s 
     S_list.append((s, 'n'))
   for i in range(num_n00):
     s = float(random.randint(0, 699999)) / 1000000  # 0.0 to 0.7
-    assert (s < 0.7), s
+    assert (s < 0.7), s 
     S_list.append((s, 'n'))
 
   # Check the required numbers of matches and non-matches have been generated
@@ -155,7 +165,7 @@ def good_classification(num_m, num_n):
     if c == 'm': check_m +=1
     else: check_n += 1
   assert num_m == check_m and num_n == check_n
-
+  
   return S_list
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -223,7 +233,7 @@ def get_best_result(S_list, perf_meas_funct):
 
   all_m = 0  # Get number of matches in S_list
   num_all = len(S_list)
-
+  
   for (class_score, class_label) in S_list:
     assert class_label in ['m', 'n']
     if (class_label == 'm'):
@@ -238,7 +248,7 @@ def get_best_result(S_list, perf_meas_funct):
   tn = all_n
 
   S_sorted = sorted(S_list, reverse=True)  # Sort with largest first
-
+  
   for (class_score, class_label) in S_sorted:
     curr_thres = class_score
 
@@ -271,12 +281,12 @@ def calc_auc_pr(S_list, prec_funct, reca_funct):
 
   all_m = 0  # Get number of matches in S_list
   num_all = len(S_list)
-
+  
   for (class_score, class_label) in S_list:
     assert class_label in ['m', 'n']
     if (class_label == 'm'):
       all_m += 1
-
+      
   # Calculate the AUC-PR (follow sklearn.metrics.average_precision_score)
   # In the prec_list and reca_list we have high precision and low recall
   # first (assuming we start with the highest classification scores), while
@@ -286,7 +296,7 @@ def calc_auc_pr(S_list, prec_funct, reca_funct):
   #
   reca_list = [0.0]
   prec_list = []
-
+  
   tp = 0
   fn = all_m
   fp = 0
@@ -302,7 +312,7 @@ def calc_auc_pr(S_list, prec_funct, reca_funct):
 
     prec_list.append(prec_funct(tp, fn, fp))
     reca_list.append(reca_funct(tp, fn, fp))
-
+ 
   auc_pr = 0
 
   for (i, prec) in enumerate(prec_list):
@@ -384,17 +394,27 @@ def load_res_file(res_file_name):
   else:
     raise(Exception)
 
+  rec_id_pair_set = set()  # Ensure each record pair only occurs once
+  
   S_list = []
+  s_set = set()
 
   num_m, num_n = 0, 0
 
   for line in in_file:
     line_list = line.strip().split(',')
-    assert len(line_list) == 2, line
-    class_score, class_label = line_list
+    assert len(line_list) == 3, line
+    rec_id_pair, class_score, class_label = line_list
+
+    if (rec_id_pair in rec_id_pair_set):
+      print('  *** Warning: Record pair %s occurs more than once ' % \
+            (rec_id_pair) + 'in file:', res_file_name)
+    rec_id_pair_set.add(rec_id_pair)
 
     class_score = float(class_score.strip())
     assert (class_score >= 0.0) and (class_score <= 1.0), class_score
+
+    s_set.add(class_score)
 
     if (class_label.strip() == '1'):
       class_label = 'm'
@@ -410,6 +430,9 @@ def load_res_file(res_file_name):
   print('  Read %d classification scores and class labels from file: %s' % \
         (len(S_list), res_file_name.split('/')[-1]))
   print('    Identified %d matches and %d non-matches' % (num_m, num_n))
+  class_ratio = float(num_n) / num_m
+  print('      Class ratio: 1 : %.3f' % (class_ratio))
+  print('      Number of unique classification scores: %d' % (len(s_set)))
   print()
 
   return S_list, num_m, num_n
@@ -422,24 +445,38 @@ if (len(sys.argv) == 3):
   num_n = int(sys.argv[2])
   assert (num_m > 0) and (num_n > 0)  # We need both classes to be non-empty
 
+  class_ratio = round(float(num_m) / float(num_m + num_n), 2)
+  if (class_ratio == 0.5):
+    class_ratio_str = '(1:1)'
+  elif (class_ratio == 0.33):
+    class_ratio_str = '(1:2)'
+  elif (class_ratio == 0.2):
+    class_ratio_str = '(1:4)'
+  elif (class_ratio == 0.17):
+    class_ratio_str = '(1:5)'
+    
   # Specify the data sets to be evaluated, mark these are to be generated
   # For each we have a name, the function to be used to generated the data
   # set,  and the number of times to generate such a data set (due to some
   # being generated involving randomness)
   #
-  data_set_list = [('gen', 'Perfect', perfect_classification, 1),
-                   ('gen', 'Excellent', excellent_classification, 100),
-                   ('gen', 'Good', good_classification, 100),
-                   ('gen', 'Random', total_random, 1000)]
+  data_set_list = [('gen', 'Perfect '+class_ratio_str,
+                    perfect_classification, 1),
+                   ('gen', 'Excellent '+class_ratio_str,
+                    excellent_classification, 100),
+                   ('gen', 'Good '+class_ratio_str,
+                    good_classification, 100),
+                   ('gen', 'Random '+class_ratio_str,
+                    total_random, 1000)]
 
   # Print the header line for the result summary lines
   #
-  print('### Data set,num_m,num_n,perc_m,P t=0.05,R t=0.5,F1 t=0.5,' + \
-        'F* t=0.5,P opt (t),R opt (t),F1 opt (t),F* opt (t),AUC-PR,' + \
-        'CRL-0.05 (t_l/t_u),CRL-0.1 (t_l/t_u),CRL-0.2 (t_l/t_u),' + \
-        'CRL-0.3 (t_l/t_u)')
+  print('### Data set,num_m,num_n,num_uniq_s,perc_uniq,perc_m,P t=0.05,' + \
+        'R t=0.5,F1 t=0.5,F* t=0.5,P opt (t),R opt (t),F1 opt (t),' + \
+        'F* opt (t),AUC-PR,CRL-0.05 (t_l/t_u),CRL-0.1 (t_l/t_u),' + \
+        'CRL-0.2 (t_l/t_u),CRL-0.3 (t_l/t_u)')
   print()
-
+  
 elif (len(sys.argv) == 2):
   res_file_name = sys.argv[1]
 
@@ -447,11 +484,13 @@ elif (len(sys.argv) == 2):
   # it to be a data set from file and its file name
   #
   data_set_list = [('file', res_file_name)]
-
+  
 # -----------------------------------------------------------------------------
-# Loop over the different data set
+# Loop over the different data sets
 #
 for data_set_tuple in data_set_list:
+
+  print('-'*80)
 
   # Initialise lists to hold results
   #
@@ -489,7 +528,7 @@ for data_set_tuple in data_set_list:
   # Keep all generated or loaded score lists in one list
   #
   all_S_list = []
-
+  
   if (data_set_tuple[0] == 'file'):
     res_file_name = data_set_tuple[1]
     data_set_name = res_file_name.split('/')[-1]
@@ -519,10 +558,10 @@ for data_set_tuple in data_set_list:
       all_S_list.append(S_list)
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  # Loop over all lists of classificatio nscores and class labels
+  # Loop over all lists of classification scores and class labels
 
   for S_list in all_S_list:
-
+  
     tp, fn, fp, tn = get_threshold_conf_matrix(S_list)
     assert tp + fn == num_m
     assert tn + fp == num_n
@@ -636,7 +675,7 @@ for data_set_tuple in data_set_list:
   print('  Average AUC-PR result: %.3f (std-dev: %.3f)' % \
         (auc_pr, numpy.std(AUC_PR_list)))
   print()
-
+  
   print('  Average CRL-0.05 result (t_l=%.3f, t_u=%.3f): %.3f (std-dev: %.3f)' \
         % (crl_05_t_low, crl_05_t_upp, crl_05, numpy.std(CRL_05_res_list)))
   print('  Average CRL-0.1 result  (t_l=%.3f, t_u=%.3f): %.3f (std-dev: %.3f)' \
@@ -652,8 +691,19 @@ for data_set_tuple in data_set_list:
   perc_m =   100.0*float(num_m) / (num_m + num_n)
   ci_ratio = float(num_m) / num_n
 
-  res_line = '%s,%d,%d,%.3f,%.3f,%.3f,%.3f,%.3f,' % \
-             (data_set_name, num_m, num_n, perc_m,P_05, R_05, F1_05, FS_05)
+  assert num_m + num_n == len(S_list)
+
+  uniq_s_set = set()
+  for (s_ij, c_ij) in S_list:
+    uniq_s_set.add(s_ij)
+  num_uniq_s = len(uniq_s_set)
+  perc_uniq = 100.0*float(num_uniq_s) / len(S_list)
+
+  num_pair_per_thres = float(num_m + num_n) / num_uniq_s
+  
+  res_line = '%s,%d,%d,%d,%.2f,%.2f,%.3f,%.3f,%.3f,%.3f,' % (data_set_name, \
+             num_m, num_n, num_uniq_s, perc_uniq, perc_m,P_05, R_05, F1_05, \
+             FS_05)
   res_line += '%.3f (t=%.3f),%.3f (t=%.3f),%.3f (t=%.3f),%.3f (t=%.3f),' % \
               (P_opt, P_opt_thres, R_opt, R_opt_thres, F1_opt, F1_opt_thres,
                FS_opt, FS_opt_thres)
@@ -667,30 +717,34 @@ for data_set_tuple in data_set_list:
   print('### '+res_line)
   print()
 
-  # replace real data set file names with names for paper table
+  # Replace real data set file names with names for paper table
   #
   ds_name_dict = \
-    {'random_forest_abt-buy_all_train_ratios_y_probs.csv.gz':'Abt-Buy / RaFo',
-     'random_forest_amazon-google_all_train_ratios_y_probs.csv.gz':'Ama-Gog / RaFo',
-     'random_forest_products_Walmart-Amazon_all_train_ratios_y_probs.csv.gz':'Wal-Ama / RaFo',
-     'random_forest_wdc_xlarge_computers_all_train_ratios_y_probs.csv.gz':'WDC comp / RaFo',
-     'random_forest_wdc_xlarge_shoes_all_train_ratios_y_probs.csv.gz':'WDC shoe / RaFo',
-     'random_forest_wdc_xlarge_watches_all_train_ratios_y_probs.csv.gz':'WDC watch / RaFo',
-
-     'svm_linear_abt-buy_all_train_ratios_y_probs.csv.gz':'Abt-Buy / L-SVM',
-     'svm_linear_wdc_xlarge_computers_all_train_ratios_y_probs.csv.gz':'WDC comp / L-SVM',
-     'svm_linear_amazon-google_all_train_ratios_y_probs.csv.gz':'Ama-Gog / L-SVM',
-     'svm_linear_wdc_xlarge_shoes_all_train_ratios_y_probs.csv.gz':'WDC shoe / L-SVM',
-     'svm_linear_products_Walmart-Amazon_all_train_ratios_y_probs.csv.gz':'Wal-Ama / L-SVM',
-     'svm_linear_wdc_xlarge_watches_all_train_ratios_y_probs.csv.gz':'WDC watch / L-SVM',
-
-     'svm_rbf_abt-buy_all_train_ratios_y_probs.csv.gz':'Abt-Buy / R-SVM',
-     'svm_rbf_wdc_xlarge_computers_all_train_ratios_y_probs.csv.gz':'WDC comp / R-SVM',
-     'svm_rbf_amazon-google_all_train_ratios_y_probs.csv.gz':'Ama-Gog / R-SVM',
-     'svm_rbf_wdc_xlarge_shoes_all_train_ratios_y_probs.csv.gz':'WDC shoe / R-SVM',
-     'svm_rbf_products_Walmart-Amazon_all_train_ratios_y_probs.csv.gz':'Wal-Ama / R-SVM',
-     'svm_rbf_wdc_xlarge_watches_all_train_ratios_y_probs.csv.gz':'WDC watch / R-SVM',
+    {'mlp_abt-buy.csv.gz':'Abt-Buy / MLP',
+     'mlp_amazon-google.csv.gz':'Ama-Goog / MLP',
+     'mlp_cora.csv.gz':'Cora / MLP',
+     'mlp_euro.csv.gz':'Euro / MLP',
+     'mlp_walmart-amazon.csv.gz':'Wal-Ama / MLP',
+     #
+     'random_forest_abt-buy.csv.gz':'Abt-Buy / RaFo',
+     'random_forest_amazon-google.csv.gz':'Ama-Goog / RaFo',
+     'random_forest_cora.csv.gz':'Cora / RaFo',
+     'random_forest_euro.csv.gz':'Euro / RaFo',
+     'random_forest_walmart-amazon.csv.gz':'Wal-Ama / RaFo',
+     #
+     'svm_linear_abt-buy.csv.gz':'Abt-Buy / L-SVM',
+     'svm_linear_amazon-google.csv.gz':'Ama-Goog / L-SVM',
+     'svm_linear_cora.csv.gz':'Cora / L-SVM',
+     'svm_linear_euro.csv.gz':'Euro / L-SVM',
+     'svm_linear_walmart-amazon.csv.gz':'Wal-Ama / L-SVM',
+     #
+     'svm_rbf_abt-buy.csv.gz':'Abt-Buy / R-SVM',
+     'svm_rbf_amazon-google.csv.gz':'Ama-Goog / R-SVM',
+     'svm_rbf_cora.csv.gz':'Cora / R-SVM',
+     'svm_rbf_euro.csv.gz':'Euro / R-SVM',
+     'svm_rbf_walmart-amazon.csv.gz':'Wal-Ama / R-SVM'
     }
+
   if (data_set_name in ds_name_dict):
     table_name = ds_name_dict[data_set_name]
   else:
@@ -704,14 +758,77 @@ for data_set_tuple in data_set_list:
 #         crl_3) + ' \\\\')
 #  print()
 
-  # Output for a Latex table (data set name, |S_list|, optimal
-  # P, R, F*, and CRL-0.1, CRL-0.2, and CRL-0.3
+  # Output for Latex table with data set and classifier details
+  # (data set name, M, N, |S_set|, (M+N)/|S_set|
   #
-  latex_str = 'Latex: ' + \
-    '\\emph{%s} & %d & & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f' % \
-    (table_name, len(S_list), P_opt, R_opt, FS_opt, auc_pr, crl_1,
-    crl_2, crl_3) + ' \\\\'
-  latex_str = latex_str.replace('.0 ', '.00 ')
+  latex_str1 = 'Latex: \\emph{%s} & %d & %d & %d & %.2f \\\\' % \
+               (table_name, num_m, num_n, num_uniq_s, num_pair_per_thres)
+  latex_str1 = latex_str1.replace('.0 ', '.00 ')
+  print('Dataset table:', latex_str1)
+  print()
 
-  print(latex_str)
+  # Output for Latex table with classification results (data set name,
+  # class_ratio, optimal P, R, F*, AUC, CRL-0.1, CRL-0.2, CRL-0.3)
+  #
+  latex_str2 = 'Latex: \\emph{' + \
+    '%s} & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f' % \
+    (table_name, ci_ratio, P_opt, R_opt, FS_opt, auc_pr, crl_1, crl_2,
+     crl_3) + ' \\\\'
+  latex_str2 = latex_str2.replace('.0 ', '.00 ')
+
+  # Output a second line with the corresponding threshold values
+  #
+  latex_str3 = 'Latex:     & & %.3f & %.3f & %.3f & & ' % \
+               (P_opt_thres, R_opt_thres, F1_opt_thres) + \
+               '(%.3f,%.3f) & (%.3f,%.3f) & (%.3f,%.3f) \\\\' % \
+               (crl_1_t_low, crl_1_t_upp, crl_2_t_low, crl_2_t_upp,
+                crl_3_t_low, crl_3_t_upp)
+  latex_str3 = latex_str3.replace('.0 ', '.00 ')
+  
+  print('Result table:', latex_str2)
+  print('Result table:', latex_str3)
+  print()
+  
+  # Now calculate the CRL-measure on different epsilon and print all results
+  #
+  print('@@@ data set, eps, crl_result, t_lower, t_upper, avr_f_star')
+
+  if (data_set_tuple[0] == 'file'):
+    assert len(all_S_list) == 1, len(all_S_list)
+    for eps in eps_list:
+      crl_res, crl_t_lower, crl_t_upper = crl_measure.crl_measure(eps, S_list)
+      if (crl_t_upper > crl_t_lower):
+        avr_f_star = min(1.0, crl_res / (crl_t_upper - crl_t_lower))
+      else:
+        avr_f_star = 0.0
+      print('@@@ %s, %.3f, %.3f, %.3f, %.3f, %.3f' % \
+            (table_name, eps, crl_res, crl_t_lower, crl_t_upper, avr_f_star))
+  
+  else:
+    assert data_set_tuple[0] == 'gen'
+    table_name = data_set_tuple[1]
+    num_iter =   data_set_tuple[-1]
+    assert len(all_S_list) == num_iter
+
+    for eps in eps_list:
+      crl_eps_res_list =     []
+      crl_t_lower_res_list = []
+      crl_t_upper_res_list = []
+
+      for S_list in all_S_list:
+        crl_res, crl_t_lower, crl_t_upper = crl_measure.crl_measure(eps, S_list)
+        crl_eps_res_list.append(crl_res)
+        crl_t_lower_res_list.append(crl_t_lower)
+        crl_t_upper_res_list.append(crl_t_upper)
+      crl_res = sum(crl_eps_res_list) / num_iter
+      crl_t_lower = sum(crl_t_lower_res_list) / num_iter
+      crl_t_upper = sum(crl_t_upper_res_list) / num_iter
+
+      if (crl_t_upper > crl_t_lower):
+        avr_f_star = min(1.0, crl_res / (crl_t_upper - crl_t_lower))
+      else:
+        avr_f_star = 0.0
+      print('@@@ %s, %.3f, %.3f, %.3f, %.3f, %.3f' % \
+            (table_name, eps, crl_res, crl_t_lower, crl_t_upper, avr_f_star))
+
   print()
