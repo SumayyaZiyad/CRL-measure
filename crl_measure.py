@@ -128,11 +128,11 @@ def crl_measure(eps, S_list, m_class_label='m', n_class_label='n'):
     F_list.append(f_star(tp, fn, fp))
     use_unique_s_ij_set.add(s_ij)
 
+    t_lower = s_ij  # Set to next value so we have non-zero interval
+
     s_ij = unique_score_list[k]  # Next unique classification score
     score_m, score_n = S_dict[s_ij]  # Get counts of class memberships at s_ij
     k += 1
-
-    t_lower = s_ij  # Set to next value so we have non-zero interval
 
     tp += score_m
     fn -= score_m
